@@ -22,8 +22,8 @@ def get_twits(syms,last_tweet):
     
     return resp
     
-def process_twits_with_sentiment(twits):
-    with open('data_%s.jsonl' % datetime.datetime.now().strftime('%Y%m%d'),
+def process_twits_with_sentiment(twits,path='data'):
+    with open(os.path.join(path,'data_%s.jsonl' % datetime.datetime.now().strftime('%Y%m%d')),
                   'a') as outfile:
         for twit in twits:
             if twit['entities']['sentiment']:
