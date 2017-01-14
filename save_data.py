@@ -18,18 +18,23 @@ def get_twits(syms,last_tweet):
     params = {'access_token':twit_token,
               'symbols':','.join(syms),
               'since':last_tweet}
-    resp = requests.request('GET',streams_url,params=params).json()
-    
+    try:
+        resp = requests.request('GET',streams_url,params=params).json()
+    except Exception as e:
+        print(e)
+        resp = None
     return resp
     
 def process_twits_with_sentiment(twits,path='data'):
     with open(os.path.join(path,'data_%s.jsonl' % datetime.datetime.now().strftime('%Y%m%d')),
                   'a') as outfile:
         for twit in twits:
-            if twit['entities']['sentiment']:
-                data={"sent":twit['entities']['sentiment']['basic'],
+            data={"sent":twit['entities']['sentiment'],
                        "sym":twit['symbols'][0]['symbol'],
-                       "text":twit['body']}
+                       "text":twit['body'],
+                       "time":twit['created_at']}
+            if twit['entities']['sentiment']:
+                data['sent'] = twit['entities']['sentiment']['basic']
                 json.dump(data,outfile)
                 outfile.write('\n')
 
@@ -39,16 +44,17 @@ def run(syms):
     
     while True:
         resp = get_twits(syms,last_tweet)
-        status = resp['response']['status']
-        if status == 429:
-            sys.stderr.write('Rate Limit Exceeded. Sleeping for 30 seconds.')
-            time.sleep(30)
-        elif status != 200:
-            sys.stderr.write('Error: Status Code %s' %status)
-        else:
-            last_tweet = resp['cursor']['since']
-            print(last_tweet,datetime.datetime.now())
-            process_twits_with_sentiment(resp['messages'])
+        if resp:
+            status = resp['response']['status']
+            if status == 429:
+                sys.stderr.write('Rate Limit Exceeded. Sleeping for 30 seconds.')
+                time.sleep(30)
+            elif status != 200:
+                sys.stderr.write('Error: Status Code %s' %status)
+            else:
+                last_tweet = resp['cursor']['since']
+                print(last_tweet,datetime.datetime.now())
+                process_twits_with_sentiment(resp['messages'])
         time.sleep(10)       
 
 
